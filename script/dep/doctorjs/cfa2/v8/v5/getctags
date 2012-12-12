@@ -1,0 +1,8 @@
+#!/bin/bash
+
+for file in `ls *js`
+do
+  ../../../../../bin/jsctags.js "$file"
+  mv tags `basename "$file" .js`.tags
+done
+

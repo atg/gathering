@@ -1,0 +1,55 @@
+{
+    "name": "jsctags",
+    "description": "Intelligent code indexing for JavaScript",
+    "version": "0.1.0",
+    "keywords": [
+        "ctags",
+        "tags",
+        "doctorjs"
+    ],
+    "maintainers": [
+        {
+            "name": "Nicholas Penree",
+            "email": "nick@penree.com",
+            "web": "http://penree.com"
+        }
+    ],
+    "contributors": [
+        {
+            "name": "Patrick Walton",
+            "email": "pwalton@mozilla.com",
+            "web": "http://pcwalton.blogspot.com/"
+        },
+        {
+            "name": "Nicholas Penree",
+            "email": "nick@penree.com",
+            "web": "http://penree.com"
+        }
+    ],
+    "bugs": "http://github.com/drudge/doctorjs/issues",
+    "licenses": [
+        {
+            "type": "MPL",
+            "url": "http://www.mozilla.org/MPL/MPL-1.1.html"
+        },
+        {
+            "type": "GPLv2",
+            "url": "http://www.gnu.org/licenses/gpl-2.0.html"
+        },
+        {
+            "type": "LGPLv2.1",
+            "url": "http://www.gnu.org/licenses/lgpl-2.1.html"
+        }
+    ],
+    "repositories": [
+        {
+            "type": "git",
+            "url": "git://github.com/drudge/doctorjs.git"
+        }
+    ],
+    "dependencies": {},
+    "homepage": "http://github.com/drudge/jsctags/",
+    "engine": [ "node" ],
+    "bin": { "jsctags": "./bin/jsctags.js" },
+    "preferGlobal": "true"
+}

@@ -1,0 +1,45 @@
+                                        LOC      timestamp      cef      no-sums     mem(MB)    time(ms)
+
+check-3d-cube.js                        341      629            145      62          5.119      150
+check-3d-morph.js                       34       144            1        1           4.21       90
+check-3d-raytrace.js                    418      546            235      180         6.555      160
+check-access-binary-trees.js            48       155            50       26          4.48       90
+check-access-fannkuch.js                62       138            1        1           4.342      90
+check-access-nbody.js                   167      192            16       16          4.298      100
+check-access-nsieve.js                  35       137            3        3           4.203      90
+check-bitops-3bit-bits-in-byte.js       20       134            2        2           4.104      95
+check-bitops-bits-in-byte.js            20       134            2        2           4.098      85
+check-bitops-bitwise-and.js             4        135            0        0           3.969      80
+check-bitops-nsieve-bits.js             35       144            3        3           4.235      90
+check-controlflow-recursive.js          23       135            71       19          4.308      90
+check-crypto-aes.js                     412      618            69       51          5.714      140
+check-crypto-md5.js                     274      146            185      32          5.595      130
+check-crypto-sha1.js                    212      147            59       26          4.615      100
+check-date-format-tofte.js              285      386            57       51          5.496      110
+check-date-format-xparb.js              410      333            27       24          5.441      120
+check-math-cordic.js                    74       152            18       17          4.337      90
+check-math-partial-sums.js              36       211            1        1           4.368      90
+check-math-spectral-norm.js             48       147            11       8           4.395      90
+check-mont.js                           117      220            4        4           4.723      100
+check-regexp-dna.js                     1708     226            0        0           4.529      90
+check-string-fasta.js                   85       174            7        7           4.523      90
+check-string-tagcloud.js                233      214            29       19          4.659      105
+check-string-unpack-code.js             60       214            40       28          5.095      110
+
+v8/v1
+crypto.js                               1650     528            15813    5667        14.315     970
+deltablue.js                            834      406            3974     1818        5.247      290
+earley-boyer.js                         4677     6699           17165    8668        27.793     1370
+raytrace.js                             3403     4256           309083   133528      18.625     38220
+raytrace-inlined.js                     3403     1923           1822     1422        10.872     590
+richards.js                             495      345            77       76          4.523      120
+
+v8/v6
+crypto.js                               1698     545            19751    6982        14.411     1170
+deltablue.js                            880      406            3974     1818        5.280      300
+earley-boyer.js                         4684     6667           16902    8536        19.817     1350
+raytrace.js                             904      1956           82663    33811       18.431     4190
+raytrace-inlined.js                     904      733            462      398         7.720      200
+regexp                                  1761     1826           122      121         9.464      360
+richards.js                             539      347            77       76          4.560      120
+splay                                   394      211            72       51          4.973      110
