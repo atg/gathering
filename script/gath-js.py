@@ -64,7 +64,8 @@ INPATH = ''
 def parseJS(filepaths, inpath, outpath):
     for filepath in filepaths:
         jp = 'XXJSONXX'
-        output = subprocess.check_output(['/usr/local/bin/node', 'js/doctorjs/bin/jsctags.js', '-j', jp, '-f', '-', filepath])
+        print ['/usr/local/bin/node', 'dep/doctorjs/bin/jsctags.js', '-j', jp, '-f', '-', filepath]
+        output = subprocess.check_output(['/usr/local/bin/node', 'dep/doctorjs/bin/jsctags.js', '-j', jp, '-f', '-', filepath])
         output = output[len(jp) + 1 : -2]
         j = json.loads(output)
         for symbol in j:

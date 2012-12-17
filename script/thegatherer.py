@@ -175,9 +175,12 @@ def recParseModule(path, prefix=''):
             print traceback.format_exc()
 
 def parsePython(filepaths, inpath, outpath):
-    sys.path.insert(0, '/Users/alexgordon/Temporary/thegatherer/libs/Django-1.4.2')
+    lastcomp = os.path.dirname(inpath)
+    basecomp = os.path.basename(inpath)
+    
+    sys.path.insert(0, lastcomp)
     os.environ['DJANGO_SETTINGS_MODULE'] = 'placeholdersettings'
-    recParseModule('/Users/alexgordon/Temporary/thegatherer/libs/Django-1.4.2/django', 'django')
+    recParseModule(inpath, basecomp)
     
     for prefix in modules:
         print 'NAMESPACE: ' + prefix
@@ -188,7 +191,9 @@ def splitlinesstrip(s):
 
 def parseRuby(filepaths, inpath, outpath):
     # ri -l -d <inpath>
-    ripath = '/Users/alexgordon/.rvm/rubies/ruby-1.9.3-p194/bin/ri'
+    ripath = subprocess.check_output(['/usr/bin/which', 'ri']).strip()
+    print 'RUBY IS AT ' + ripath
+    # '/Users/alexgordon/.rvm/rubies/ruby-1.9.3-p194/bin/ri'
     output = subprocess.check_output([ripath, '-l', '-d', inpath, '--no-standard-docs'])
     classes = output.splitlines()
     
