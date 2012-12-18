@@ -13,45 +13,60 @@ store = RDoc::RI::Store.new(ARGV[0])
 store.dry_run = true
 store.load_cache()
 
-names = store.modules()
-names.each do |n|  
-  cl = store.load_class(n)
-  if cl.kind_of?(RDoc::NormalModule)
-    #puts('[m]: ' + n)
-    #puts('~~ ' + cl.to_s)
-    #puts('   ' + cl.definition())
-    
-    record = {}
-    record[:name] = n.rpartition("::")[2]
-    record[:parents] = n.rpartition("::")[0]
-    record[:fullname] = n
-    record[:fullsignature] = cl.definition()
+
+def handle_class(n, cl, ismodule, htmlifier, records)
+  record = {}
+  
+  puts "CLASS " + n
+  
+  record[:name] = n.rpartition("::")[2]
+  record[:parents] = n.rpartition("::")[0]
+  record[:fullname] = n
+  record[:fullsignature] = cl.definition()
+  
+  if ismodule
     record[:type] = 'namespace'
-    
-    #driver = RDoc::RI::Driver.new()
-    #moduledoc = driver.display_class(cl)
-    record[:html] = cl.comment.accept(htmler)
-    records.push(record)
-    
-  elsif cl.kind_of?(RDoc::NormalClass)
-    #puts('[c]: ' + n)
-    #puts('~~ ' + cl.to_s)
-    #puts('   ' + cl.definition())
-    
-    record = {}
-    record[:name] = n.rpartition("::")[2]
-    record[:parents] = n.rpartition("::")[0]
-    record[:fullname] = n
-    record[:fullsignature] = cl.definition()
+  else
     record[:type] = 'class'
     record[:superclass] = cl.superclass
-    record[:html] = cl.comment.accept(htmler)
-    records.push(record)
+  end
+  
+  record[:html] = cl.comment.accept(htmlifier)
+  records.push(record)
+  cl.constants.each do |constant|
     
+    constantrecord = {}
+    constantrecord[:name] = constant.name
+    constantrecord[:parents] = n
+    constantrecord[:fullname] = n + "::" + constant.name
+    constantrecord[:type] = 'constant'
+    # constantrecord[:visibility] = constant.visibility
+    if constant.value.kind_of?(String)
+      constantrecord[:fullsignature] = n + " = " + constant.value
+    end
+    
+    constantrecord[:html] = constant.comment.accept(htmlifier)
+    records.push(constantrecord)
+  end
+end
+
+names = store.modules()
+names.each do |n|  
+  #puts n
+  if n == 'ActiveRecord::Base'
+    next
+  end
+  cl = store.load_class(n)
+  if cl.kind_of?(RDoc::NormalModule)
+    handle_class(n, cl, true, htmler, records)
+  elsif cl.kind_of?(RDoc::NormalClass)
+    handle_class(n, cl, false, htmler, records)
   else
     #puts("????")
   end
 end
+
+#puts "DONE CLASSES"
 
 attrs = store.attributes()
 classmethods = store.class_methods()
@@ -93,7 +108,7 @@ def handle_method(meth, records, parents, name, isinstance, htmlformatter)
   record[:fullsignature] = methname + meth.param_seq.to_s
   record[:minisignature] = methname + meth.params.to_s
   record[:issingleton] = meth.singleton
-  #record[:marshal_dump] = meth.callseq
+  
   if isinstance
     record[:type] = 'method'
   else
@@ -101,17 +116,6 @@ def handle_method(meth, records, parents, name, isinstance, htmlformatter)
   end
   
   record[:html] = comment.accept(htmlformatter)
-  
-  #puts '<<<<\n' + html.to_s + '\n>>>>'
-  #puts comment.parts.to_s
-  #html = htmler.convert(meth.comment.text)
-  #puts html
-  #puts(meth.markup_code())
-  #puts('   ' + comment.parts.to_s)
-  
-  #puts('   ' + meth.marshal_dump.to_s)
-  #puts('   ' + meth.params.to_s)
-  #puts('   ' + meth.param_seq.to_s)
   
   records.push(record)
 end
@@ -162,21 +166,17 @@ def handle_attr(att, records, parents, name, isinstance, htmlformatter)
   records.push(record)
 end
 
-
+=begin
 attrs.each do |ims|
   ims[1].each do |im|
-    #puts('  [ a] ' + ims[0] + ' --- ' + im)
     attrname = im.split(' ')[1]
     att = store.load_method(ims[0], '#' + attrname)
-    #puts(att.class.name)
-    #puts(att.marshal_dump.to_s)
     handle_attr(att, records, ims[0], im, true, htmler)
   end
 end
 
 classmethods.each do |ims|
   ims[1].each do |im|
-    # puts('  [cm] ' + ims[0] + ' --- ' + im)
     meth = store.load_method(ims[0], im)
     handle_method(meth, records, ims[0], im, false, htmler)
   end
@@ -184,10 +184,10 @@ end
 
 instancemethods.each do |ims|
   ims[1].each do |im|    
-    # puts('  [im] ' + ims[0] + ' --- ' + im)
     meth = store.load_method(ims[0], '#' + im)
     handle_method(meth, records, ims[0], im, true, htmler)
   end
 end
+=end
 
 puts JSON.pretty_generate(records)
