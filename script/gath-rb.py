@@ -14,14 +14,34 @@ db = None
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
 
-def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl):
+def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, **others):
     qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
     print '%s, %s  [%s] // %d' % (kind, qualname, defline, len(docs))
     #print docs
+
+    fullsource = others['fullsource'] if 'fullsource' in others else ''
+    superclass = others['superclass'] if 'superclass' in others else ''
+    
+    visibility = others['visibility'] if 'visibility' in others else ''
+    canread = others['canread'] if 'canread' in others else ''
+    canwrite = others['canwrite'] if 'canwrite' in others else ''
+    issingleton = others['issingleton'] if 'issingleton' in others else ''
     
     with db:
         c = db.cursor()
-        c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl))
+        c.execute("""INSERT INTO symbols (
+            namespace, parents, name, original_namespace,
+            type_code, declaration, documentation, sourcedecl,
+            fullsource, superclass,
+            visibility, canread, canwrite, issingleton) VALUES (
+            ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?,
+            ?, ?, ?, ?)""", (
+            module, parent, name, original_namespace,
+            kind, defline, removeNonAscii(docs), linedecl,
+            fullsource, superclass,
+            visibility, canread, canwrite, issingleton))
 
 def splitlinesstrip(s):
     return [line.strip() for line in s.splitlines() if line.strip()]
@@ -54,6 +74,11 @@ def main(argv):
         original_namespace TEXT,
         type_code TEXT,
         declaration TEXT, sourcedecl TEXT, documentation TEXT,
+        
+        fullsource TEXT,
+        visibility TEXT, canread BOOLEAN, canwrite BOOLEAN, issingleton BOOLEAN,
+        superclass TEXT,
+        
         weighting REAL)""")
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
     
@@ -103,7 +128,8 @@ def main(argv):
         
         addRowRaw(namespace, parents, name,
                   namespace, record['type'],
-                  signature, record['html'], fullsignature)
+                  signature, record['html'], fullsignature
+                  **record)
         
     print modules
     

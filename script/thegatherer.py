@@ -55,6 +55,8 @@ def addRow(kind, module, parent, name, fobj, obj):
     docs = ''
     linedecl = ''
     original_namespace = ''
+    superclass = ''
+    fullsource = ''
     if fobj:
         defline = fauxDefinition(name, fobj)
         if kind == 'class_method' and ('(self, ' in defline or '(self)' in defline):
@@ -76,33 +78,45 @@ def addRow(kind, module, parent, name, fobj, obj):
             if not docs:
                 docs = ''
         
+        if hasattr(obj, '__bases__'):
+            if len(obj.__bases__) == 1:
+                superclass = obj.__bases__[0].__name__
+                if not superclass:
+                    superclass = ''
+        
         linedecl = inspect.getsourcelines(obj)
         if not linedecl:
             linedecl = ""
         else:
+            if len(linedecl) < 30:
+                fullsource = '\n'.join(linedecl)
+            
             linedecl = linedecl[0]
             if not linedecl:
                 linedecl = ""
             else:
                 linedecl = linedecl[0]
-
+    
     module = module.replace('.', '::')
     parent = parent.replace('.', '::')
     
     qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
-    addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl)
+    addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, superclass=superclass, fullsource=fullsource)
 
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
 
-def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl):
+def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, **others):
     qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
     print '%s, %s  [%s] // %d' % (kind, qualname, defline, len(docs))
     #print docs
-    
+
+    fullsource = others['fullsource'] if 'fullsource' in others else ''
+    superclass = others['superclass'] if 'superclass' in others else ''
+
     with db:
         c = db.cursor()
-        c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl))
+        c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, removeNonAscii(fullsource), superclass))
 
 
 modules = set([])
@@ -369,6 +383,11 @@ def main(argv):
         original_namespace TEXT,
         type_code TEXT,
         declaration TEXT, sourcedecl TEXT, documentation TEXT,
+        
+        fullsource TEXT,
+        visibility TEXT, canread BOOLEAN, canwrite BOOLEAN, issingleton BOOLEAN,
+        superclass TEXT,
+        
         weighting REAL)""")
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
     
