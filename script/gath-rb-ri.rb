@@ -17,7 +17,7 @@ store.load_cache()
 def handle_class(n, cl, ismodule, htmlifier, records)
   record = {}
   
-  puts "CLASS " + n
+  #puts "CLASS " + n
   
   record[:name] = n.rpartition("::")[2]
   record[:parents] = n.rpartition("::")[0]
@@ -148,8 +148,14 @@ def handle_attr(att, records, parents, name, isinstance, htmlformatter)
   record[:filepath] = filepath
   record[:visibility] = visibility
   #puts readwrite
-  record[:canread] = readwrite.include?('R')
-  record[:canwrite] = readwrite.include?('W')
+  
+  if readwrite.kind_of?(String)
+    record[:canread] = readwrite.include?('R')
+    record[:canwrite] = readwrite.include?('W')
+  else
+    record[:canread] = false
+    record[:canwrite] = false
+  end
   
   record[:fullsignature] = name
   #record[:minisignature] = attname + att.params.to_s
@@ -166,12 +172,14 @@ def handle_attr(att, records, parents, name, isinstance, htmlformatter)
   records.push(record)
 end
 
-=begin
 attrs.each do |ims|
   ims[1].each do |im|
-    attrname = im.split(' ')[1]
-    att = store.load_method(ims[0], '#' + attrname)
-    handle_attr(att, records, ims[0], im, true, htmler)
+    begin
+      attrname = im.split(' ')[1]
+      att = store.load_method(ims[0], '#' + attrname)
+      handle_attr(att, records, ims[0], im, true, htmler)
+    rescue
+    end
   end
 end
 
@@ -188,6 +196,5 @@ instancemethods.each do |ims|
     handle_method(meth, records, ims[0], im, true, htmler)
   end
 end
-=end
 
 puts JSON.pretty_generate(records)

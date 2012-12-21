@@ -63,6 +63,13 @@ def main(argv):
     try: os.unlink(outpath)
     except: pass
     
+    jsonstr = subprocess.check_output(['/usr/bin/env', 'ruby', 'script/gath-rb-ri.rb', inpath]).strip()
+    print 'End'
+    print jsonstr
+    j = json.loads(jsonstr)
+    if not j or len(j) < 3:
+        return 0
+    
     global db
     db = sqlite3.connect(outpath)
     
@@ -82,17 +89,17 @@ def main(argv):
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
     
     print 'Begin'
-    jsonstr = subprocess.check_output(['/usr/bin/env', 'ruby', 'script/gath-rb-ri.rb', inpath]).strip()
-    print 'End'
-    j = json.loads(jsonstr)
     
     modules = []
     for record in j:
         if record['type'] == 'namespace':
             modules.append(record['fullname'])
+    
+    allowedkeys = {'fullsource', 'superclass', 'visibility', 'canread', 'canwrite', 'issingleton'}
+    
     with db:
         for record in j:
-            print record['fullname']
+            #print record['fullname']
             if record['type'] == 'method' or record['type'] == 'property':
                 parents, _, name = record['fullname'].rpartition('#')
             else:
@@ -106,8 +113,8 @@ def main(argv):
                     newparents = parents[len(mod + '::'):]
             parents = newparents
         
-            print '  ' + str((namespace, parents, name))
-            pprint(record)
+            #print '  ' + str((namespace, parents, name))
+            #pprint(record)
         
             if 'fullsignature' in record:
                 fullsignature = record['fullsignature']
@@ -125,13 +132,14 @@ def main(argv):
         
             # TODO: CONSTANTS
             # html = 
-        
+            recordargs = { k: record[k] for k in record if k in allowedkeys }            
+            
             addRowRaw(namespace, parents, name,
                       namespace, record['type'],
-                      signature, record['html'], fullsignature
-                      **record)
+                      signature, record['html'], fullsignature,
+                      **recordargs)
         
     # print modules
     
 if __name__ == '__main__':
-    main(sys.argv)
+    sys.exit(main(sys.argv[1:]) or 0)

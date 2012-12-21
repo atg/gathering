@@ -83,7 +83,7 @@ def main():
         print rubypath
         print '  ' + outpath
         
-        subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'rb', rubypath, outpath], cwd='script')
+        subprocess.check_call(['/usr/bin/python', 'script/gath-rb.py', 'rb', rubypath, outpath])
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
         
