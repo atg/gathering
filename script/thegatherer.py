@@ -26,10 +26,15 @@ printExceptions = True
 db = None
 
 def fauxDefinition(name, fobj):
-    hasextras = bool(inspect.getargspec(fobj)[1]) or bool(inspect.getargspec(fobj)[2])
+    try:
+        argspec = inspect.getargspec(fobj)
+    except TypeError as e:
+        return ''
     
-    args = inspect.getargspec(fobj)[0]
-    defaults = inspect.getargspec(fobj)[3]
+    hasextras = bool(argspec[1]) or bool(argspec[2])
+    
+    args = argspec[0]
+    defaults = argspec[3]
     
     if not defaults:
         defaults = []
@@ -57,45 +62,49 @@ def addRow(kind, module, parent, name, fobj, obj):
     original_namespace = ''
     superclass = ''
     fullsource = ''
+    
     if fobj:
         defline = fauxDefinition(name, fobj)
         if kind == 'class_method' and ('(self, ' in defline or '(self)' in defline):
             kind = 'method'
     if obj:
-        original_namespace = inspect.getsourcefile(obj)
-        if not original_namespace:
-            original_namespace = ''
-        else:
-            original_namespace = os.path.relpath(original_namespace, os.path.dirname(INPATH))
-            if original_namespace.startswith('..'):
+        try:
+            original_namespace = inspect.getsourcefile(obj)
+            if not original_namespace:
                 original_namespace = ''
-        original_namespace = filename2namespace(original_namespace)
-        print original_namespace
+            else:
+                original_namespace = os.path.relpath(original_namespace, os.path.dirname(INPATH))
+                if original_namespace.startswith('..'):
+                    original_namespace = ''
+            original_namespace = filename2namespace(original_namespace)
+            print original_namespace
         
-        docs = inspect.getdoc(obj)
-        if not docs:
-            docs = inspect.getcomments(obj)
+            docs = inspect.getdoc(obj)
             if not docs:
-                docs = ''
+                docs = inspect.getcomments(obj)
+                if not docs:
+                    docs = ''
         
-        if hasattr(obj, '__bases__'):
-            if len(obj.__bases__) == 1:
-                superclass = obj.__bases__[0].__name__
-                if not superclass:
-                    superclass = ''
+            if hasattr(obj, '__bases__'):
+                if len(obj.__bases__) == 1:
+                    superclass = obj.__bases__[0].__name__
+                    if not superclass:
+                        superclass = ''
         
-        linedecl = inspect.getsourcelines(obj)
-        if not linedecl:
-            linedecl = ""
-        else:
-            linedecl = linedecl[0]
+            linedecl = inspect.getsourcelines(obj)
             if not linedecl:
                 linedecl = ""
             else:
-                if len(linedecl) < 30:
-                    fullsource = '\n'.join(linedecl)
-                
                 linedecl = linedecl[0]
+                if not linedecl:
+                    linedecl = ""
+                else:
+                    if len(linedecl) < 30:
+                        fullsource = '\n'.join(linedecl)
+                
+                    linedecl = linedecl[0]
+        except TypeError as e:
+            pass
     
     module = module.replace('.', '::')
     parent = parent.replace('.', '::')
