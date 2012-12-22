@@ -120,8 +120,12 @@ def main():
         
         print fullpypath
         print '  ' + outpath
-
-        subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
+        
+        try:
+            subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
+        except subprocess.CalledProcessError as e:
+            os.unlink(outpath)
+        
         pyi += 1
         if pyi == 20:
             break
