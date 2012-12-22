@@ -1,4 +1,4 @@
-import os, subprocess, re
+import os, subprocess, re, sys
 
 VERSION = 1
 
@@ -86,7 +86,40 @@ def main():
         subprocess.check_call(['/usr/bin/python', 'script/gath-rb.py', 'rb', rubypath, outpath])
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
+    
+    pypaths = subprocess.check_output(['/usr/bin/env', 'pip', 'freeze']).splitlines()
+    syspath = sys.path
+    for pypath in pypaths:
+        if not '==' in pypath:
+            continue
         
+        outcomp_name, outcomp_version = pypath.partition('==')
+        if (not outcomp_name) or (not outcomp_name):
+            continue
+        
+        if '-' in outcomp_version:
+            outcomp_version, _, _ = outcomp_version.partition('-')
+        
+        outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, 'python', outcomp_name, outcomp_version)
+        outpath = os.path.abspath(outpath)
+        # Ignore it if it exists
+        if os.path.exists(outpath):
+            continue
+        
+        for p in syspath:
+            fullpypath = os.path.join(p, outcomp_name):
+            if os.path.exists(fullpypath) and os.path.isdir(fullpypath):
+                break
+            else:
+                fullpypath = None
+        
+        if not fullpypath:
+            continue
+        
+        print fullpypath
+        print '  ' + outpath
+
+        subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
 
 if __name__ == '__main__':
     main()
