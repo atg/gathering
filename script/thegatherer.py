@@ -88,13 +88,13 @@ def addRow(kind, module, parent, name, fobj, obj):
         if not linedecl:
             linedecl = ""
         else:
-            if len(linedecl) < 30:
-                fullsource = '\n'.join(linedecl)
-            
             linedecl = linedecl[0]
             if not linedecl:
                 linedecl = ""
             else:
+                if len(linedecl) < 30:
+                    fullsource = '\n'.join(linedecl)
+                
                 linedecl = linedecl[0]
     
     module = module.replace('.', '::')
@@ -394,12 +394,14 @@ def main(argv):
     # Find all relevant files
     fileexts = extensionsForLanguage(language)
     filepaths = []
+    '''
     for root, dirs, files in os.walk(inpath):
         for fp in files:
             ext = os.path.splitext(fp)[1].lower()
             fullpath = os.path.join(root, fp)
             if ext in fileexts:
                 filepaths.append(fullpath)
+    '''
     
     if language == 'py':
         # Do everything in a transaction
