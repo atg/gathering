@@ -94,7 +94,7 @@ def main():
         if not '==' in pypath:
             continue
         
-        outcomp_name, outcomp_version = pypath.partition('==')
+        outcomp_name, _, outcomp_version = pypath.partition('==')
         if (not outcomp_name) or (not outcomp_name):
             continue
         
@@ -108,7 +108,7 @@ def main():
             continue
         
         for p in syspath:
-            fullpypath = os.path.join(p, outcomp_name):
+            fullpypath = os.path.join(p, outcomp_name)
             if os.path.exists(fullpypath) and os.path.isdir(fullpypath):
                 break
             else:
@@ -120,7 +120,8 @@ def main():
         print fullpypath
         print '  ' + outpath
 
-        #subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
+        subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
+        break
 
 if __name__ == '__main__':
     main()
