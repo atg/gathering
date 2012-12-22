@@ -90,6 +90,7 @@ def main():
     '''
     pypaths = subprocess.check_output(['/usr/bin/env', 'pip', 'freeze']).splitlines()
     syspath = sys.path
+    pyi = 0
     for pypath in pypaths:
         if not '==' in pypath:
             continue
@@ -121,7 +122,9 @@ def main():
         print '  ' + outpath
 
         subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
-        break
+        pyi += 1
+        if pyi == 20:
+            break
 
 if __name__ == '__main__':
     main()
