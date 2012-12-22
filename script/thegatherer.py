@@ -105,6 +105,8 @@ def addRow(kind, module, parent, name, fobj, obj):
                     linedecl = linedecl[0]
         except TypeError as e:
             pass
+        except IOError as e:
+            pass
     
     module = module.replace('.', '::')
     parent = parent.replace('.', '::')
