@@ -113,10 +113,8 @@ def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, lin
 
     fullsource = others['fullsource'] if 'fullsource' in others else ''
     superclass = others['superclass'] if 'superclass' in others else ''
-
-    with db:
-        c = db.cursor()
-        c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, removeNonAscii(fullsource), superclass))
+    c = db.cursor()
+    c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, removeNonAscii(fullsource), superclass))
 
 
 modules = set([])
@@ -405,8 +403,8 @@ def main(argv):
     
     if language == 'py':
         # Do everything in a transaction
-        #with db:
-        parsePython(filepaths, inpath, outpath)
+        with db:
+            parsePython(filepaths, inpath, outpath)
     elif language == 'rb':
         parseRuby(filepaths, inpath, outpath)
 
