@@ -127,7 +127,7 @@ def main():
             os.unlink(outpath)
         
         pyi += 1
-        if pyi == 20:
+        if pyi == 100:
             break
 
 if __name__ == '__main__':
