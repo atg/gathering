@@ -179,6 +179,8 @@ import pkgutil
 def recParseModule(path, prefix=''):
     try:
         for importer, modname, ispkg in pkgutil.iter_modules([path], ''):
+            if modname == 'lib2to3':
+                continue
             try:
                 newPrefix = prefix
                 if newPrefix:
