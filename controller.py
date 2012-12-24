@@ -142,7 +142,7 @@ def main():
             break
     '''
     
-    pystdlib_outpath = 'databases/v%d/python--2.7.db'
+    pystdlib_outpath = 'databases/v%d/python--2.7.db' % VERSION
     pystdlib_outpath = os.path.abspath(pystdlib_outpath)
     subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', '/usr/lib/python2.7', pystdlib_outpath], cwd='script')
     
