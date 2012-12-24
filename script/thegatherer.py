@@ -203,6 +203,10 @@ def parsePython(filepaths, inpath, outpath):
     
     sys.path.insert(0, lastcomp)
     os.environ['DJANGO_SETTINGS_MODULE'] = 'placeholdersettings'
+    
+    if basecomp in ['python2.7', 'python3.3', 'python3.4', 'python3.5', 'python3.6', 'python3.7', 'python3.8', 'python3.9']:
+        basecomp = ''
+    
     recParseModule(inpath, basecomp)
     
     for prefix in modules:
