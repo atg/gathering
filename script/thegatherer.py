@@ -69,7 +69,7 @@ def addRow(kind, module, parent, name, fobj, obj):
             kind = 'method'
     if obj:
         try:
-            if obj.hasattr('__module__') and obj.__module__:
+            if hasattr(obj, '__module__') and obj.__module__:
                 original_namespace = obj.__module__.strip('_')
             else:            
                 original_namespace = inspect.getsourcefile(obj)
