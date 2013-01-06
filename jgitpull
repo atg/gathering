@@ -1,0 +1,3 @@
+#!/bin/bash
+jgit fetch
+git merge s3/master
