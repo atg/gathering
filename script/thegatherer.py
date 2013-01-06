@@ -69,28 +69,48 @@ def addRow(kind, module, parent, name, fobj, obj):
             kind = 'method'
     if obj:
         try:
-            original_namespace = inspect.getsourcefile(obj)
-            if not original_namespace:
-                original_namespace = ''
-            else:
-                original_namespace = os.path.relpath(original_namespace, os.path.dirname(INPATH))
-                if original_namespace.startswith('..'):
+            if hasattr(obj, '__module__') and obj.__module__:
+                original_namespace = obj.__module__.strip('_')
+            else:            
+                original_namespace = inspect.getsourcefile(obj)
+                if not original_namespace:
                     original_namespace = ''
-            original_namespace = filename2namespace(original_namespace)
+                else:
+                    original_namespace = os.path.relpath(original_namespace, os.path.dirname(INPATH))
+                    if original_namespace.startswith('..'):
+                        original_namespace = ''
+                original_namespace = filename2namespace(original_namespace)
+                if original_namespace == 'python2':
+                    original_namespace = ''
             print original_namespace
+        except TypeError as e:
+            pass
+        except IOError as e:
+            pass
         
+        try:
             docs = inspect.getdoc(obj)
             if not docs:
                 docs = inspect.getcomments(obj)
                 if not docs:
                     docs = ''
+        except TypeError as e:
+            pass
+        except IOError as e:
+            pass
         
+        try:
             if hasattr(obj, '__bases__'):
                 if len(obj.__bases__) == 1:
                     superclass = obj.__bases__[0].__name__
                     if not superclass:
                         superclass = ''
-        
+        except TypeError as e:
+            pass
+        except IOError as e:
+            pass
+
+        try:
             linedecl = inspect.getsourcelines(obj)
             if not linedecl:
                 linedecl = ""
@@ -132,16 +152,26 @@ modules = set([])
 
 def parsePythonModule(mm, prefix):
     try:
+        mm_all = None
+        if hasattr(mm, '__all__'):
+            mm_all = mm.__all__
+        hasall = bool(mm_all)
+        
         for v in dir(mm):
             if v.startswith("_"):
                 continue
-        
+            
+            if mm_all != None:
+                if v not in mm_all:
+                    continue 
+            
             # Does this have documentation? If it doesn't, ignore it
             o = getattr(mm, v)
             d = inspect.getdoc(o)
             if not d:
                 d = ''
-                if not hasattr(o, 'description'):
+                if not hasattr(o, 'description') and not hasall:
+                    #if not (inspect.isroutine(o) and (not inspect.isfunction(o))):
                     continue
         
             mp = prefix + '.'
