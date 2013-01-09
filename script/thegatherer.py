@@ -1,12 +1,6 @@
 #!/usr/bin/env python
 # python thegatherer.py py libs/Django-1.4.2/django testdjango.db
 
-'''
-    symbols
-        namespace parents name kind declaration documentation
-
-'''
-
 import sys
 import os
 import sqlite3
@@ -14,6 +8,9 @@ import traceback
 import subprocess
 import re
 import inspect
+import contextlib
+
+def noexcept():
 
 def extensionsForLanguage(lang):
     if lang == 'py':
@@ -52,7 +49,31 @@ def filename2namespace(f):
     else:
         return os.path.splitext(f.replace('/', '::'))[0]
 
-def addRow(kind, module, parent, name, fobj, obj):
+def processsourcelines(obj):
+    fullsource = ''
+    linedecl = inspect.getsourcelines(obj)
+    if not linedecl:
+        return ("", fullsource)
+                 
+    linedecl = linedecl[0]
+    if not linedecl:
+        return ("", fullsource)
+    
+    # Ignore decorators
+    while linedecl and linedecl[0].startswith('@'):
+        linedecl.pop(0)
+    
+    if not linedecl:
+        return ("", fullsource)
+    
+    if len(linedecl) < 30:
+        fullsource = '\n'.join(linedecl)
+    
+    linedecl = linedecl[0]
+    return (linedecl, fullsource)
+
+
+def addRow(kind, module, parent, name, fobj, obj, isDocumented):
     if module.endswith('.'):
         module = module[:-1]
     
@@ -94,6 +115,8 @@ def addRow(kind, module, parent, name, fobj, obj):
                 docs = inspect.getcomments(obj)
                 if not docs:
                     docs = ''
+            if docs:
+                isDocumented = True
         except TypeError as e:
             pass
         except IOError as e:
@@ -111,18 +134,7 @@ def addRow(kind, module, parent, name, fobj, obj):
             pass
 
         try:
-            linedecl = inspect.getsourcelines(obj)
-            if not linedecl:
-                linedecl = ""
-            else:
-                linedecl = linedecl[0]
-                if not linedecl:
-                    linedecl = ""
-                else:
-                    if len(linedecl) < 30:
-                        fullsource = '\n'.join(linedecl)
-                
-                    linedecl = linedecl[0]
+            linedecl, fullsource = processsourcelines(obj)
         except TypeError as e:
             pass
         except IOError as e:
@@ -132,7 +144,7 @@ def addRow(kind, module, parent, name, fobj, obj):
     parent = parent.replace('.', '::')
     
     qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
-    addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, superclass=superclass, fullsource=fullsource)
+    addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, superclass=superclass, fullsource=fullsource, isDocumented=isDocumented)
 
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
@@ -144,14 +156,16 @@ def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, lin
 
     fullsource = others['fullsource'] if 'fullsource' in others else ''
     superclass = others['superclass'] if 'superclass' in others else ''
+    isDocumented = others['isDocumented'] if 'isDocumented' in others else False
+    
     c = db.cursor()
-    c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, removeNonAscii(fullsource), superclass))
+    c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass, isDocumented) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, removeNonAscii(fullsource), superclass, isDocumented))
 
 
 modules = set([])
 
 def parsePythonModule(mm, prefix):
-    try:
+    try:        
         mm_all = None
         if hasattr(mm, '__all__'):
             mm_all = mm.__all__
@@ -168,22 +182,29 @@ def parsePythonModule(mm, prefix):
             # Does this have documentation? If it doesn't, ignore it
             o = getattr(mm, v)
             d = inspect.getdoc(o)
+            isDocumented = True
             if not d:
                 d = ''
+                
+                # Allow undocumented stuff
                 if not hasattr(o, 'description') and not hasall:
-                    #if not (inspect.isroutine(o) and (not inspect.isfunction(o))):
-                    continue
+                    isDocumented = False
+                    # continue
+                    
+                
+                # Don't uncomment this, it's for unignoring compiled functions
+                #if not (inspect.isroutine(o) and (not inspect.isfunction(o))):
         
             mp = prefix + '.'
             ismatchable = True
             
             #print("%s -- %o %o %o %o" % (mp+v, inspect.ismethod(o), inspect.isfunction(o), inspect.isroutine(o), inspect.isbuiltin(o) ))
             if ismatchable and (inspect.isfunction(o) or inspect.isroutine(o)):
-                addRow('function', mp, '', v, o, o)
+                addRow('function', mp, '', v, o, o, isDocumented)
             elif ismatchable and inspect.ismethod(o):
-                addRow('function', mp, '', v, o, o)
+                addRow('function', mp, '', v, o, o, isDocumented)
             elif inspect.isclass(o):
-                addRow('class', mp, '', v, '', o)
+                addRow('class', mp, '', v, '', o, isDocumented)
                 print mp+v
                 #if ismatchable: classes.append(mp+v)
                 for vv in dir(o):
@@ -191,9 +212,9 @@ def parsePythonModule(mm, prefix):
                         continue
                     currentObject = getattr(o, vv)
                     if inspect.isfunction(currentObject) or inspect.isroutine(currentObject):
-                        addRow('class_method', mp, v, vv, currentObject, currentObject)
+                        addRow('class_method', mp, v, vv, currentObject, currentObject, isDocumented)
                     elif inspect.ismethod(currentObject):
-                        addRow('class_method', mp, v, vv, currentObject, currentObject)
+                        addRow('class_method', mp, v, vv, currentObject, currentObject, isDocumented)
             #elif inspect.ismodule(o):
                 #modules.append(v)
             
@@ -209,8 +230,11 @@ import pkgutil
 def recParseModule(path, prefix=''):
     try:
         for importer, modname, ispkg in pkgutil.iter_modules([path], ''):
-            if modname == 'lib2to3':
+            if modname.startswith('_'):
                 continue
+            elif modname == 'lib2to3':
+                continue
+            
             try:
                 newPrefix = prefix
                 if newPrefix:
@@ -243,162 +267,10 @@ def parsePython(filepaths, inpath, outpath):
     
     for prefix in modules:
         print 'NAMESPACE: ' + prefix
-        addRow('namespace', '', '', prefix.replace('.', '::'), '', None)
+        addRow('namespace', '', '', prefix.replace('.', '::'), '', None, True)
 
 def splitlinesstrip(s):
     return [line.strip() for line in s.splitlines() if line.strip()]
-
-def parseRuby(filepaths, inpath, outpath):
-    # ri -l -d <inpath>
-    ripath = subprocess.check_output(['/usr/bin/which', 'ri']).strip()
-    print 'RUBY IS AT ' + ripath
-    # '/Users/alexgordon/.rvm/rubies/ruby-1.9.3-p194/bin/ri'
-    output = subprocess.check_output([ripath, '-l', '-d', inpath, '--no-standard-docs'])
-    classes = output.splitlines()
-    
-    SPLIT_REGEX = re.compile(r'^(=\s+[^\n]+|-{10,})\n', re.MULTILINE)
-    DECL_REGEX = re.compile(r'<pre>(?:[a-zA-Z0-9_]+(?:\.|\:\:))?([a-zA-Z0-9_]+[!?]?(?:\([^\)\<\n]*\))?)(?:\s+(?:&gt;|=|\{)[^<\n]+)?</pre>')
-    FULL_DECL_REGEX = re.compile(r'<pre>([^<]+)</pre>')
-    
-    for classname in classes:
-        try:
-            classoutput = subprocess.check_output([ripath, '-d', inpath, '--no-standard-docs', '-f', 'rdoc', classname])
-            classhtmloutput = subprocess.check_output([ripath, '-d', inpath, '--no-standard-docs', '-f', 'html', classname])
-        except Exception as e:
-            print e
-        
-        superclass = ''        
-        #print classoutput
-        #print '$$$$$$$$$$$$$$$$$$$$$$$$$$$'
-        #continue
-        superclass = None
-        instance_methods = []
-        class_methods = []
-        constants = []
-        properties = []
-        includes = []
-        
-        sections = SPLIT_REGEX.split(classoutput)
-        mode = None
-        for section in sections:
-            section = section.strip()
-            if not section or section.startswith('----------'):
-                continue
-            
-            if section.startswith('= '):
-                classdeclcomps = section[2:].split(' < ')
-                if len(classdeclcomps) == 2:
-                    superclass = classdeclcomps[1]
-                    pass #print classdeclcomps
-                elif section == '= Class methods:':
-                    mode = 'class_method'
-                elif section == '= Instance methods:':
-                    mode = 'method'
-                elif section == '= Constants:':
-                    mode = 'constant'
-                elif section == '= Attributes:':
-                    mode = 'property'
-                elif section == '= Includes:':
-                    mode = 'includes'
-                else:
-                    #print section
-                    mode = None
-            elif mode:
-                if mode == 'method':
-                    instance_methods.extend(splitlinesstrip(section))
-                elif mode == 'class_method':
-                    class_methods.extend(splitlinesstrip(section))
-                elif mode == 'constant':
-                    #print 'CONSTANTS'
-                    #print splitlinesstrip(section)
-                    constants.extend(splitlinesstrip(section))
-                elif mode == 'property':
-                    #print 'PROPERTIES'
-                    #print splitlinesstrip(section)
-                    properties.extend(splitlinesstrip(section))
-                elif mode == 'includes':
-                    #print 'INCLUDES'
-                    #print splitlinesstrip(section)
-                    includes.extend(splitlinesstrip(section))
-                    #print includes
-        
-        def insertmethod(methodname, queryidentifier, kind):
-            methodoutput = subprocess.check_output([ripath, '-d', inpath, '--no-standard-docs', '-f', 'html', queryidentifier])
-            
-            module, _, classnamename = classname.rpartition('::')
-            
-            # module, parent, name, kind, defline, docs, linedecl
-            defline = ''
-            decls = DECL_REGEX.findall(methodoutput)
-            if decls:
-                defline = decls[0].strip()
-                defline = defline.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&apos;', "'")
-                defline = defline.replace('&amp;', '&')
-            
-            #if not defline:
-                #print methodoutput
-                #print ''
-            
-            if defline and not defline.endswith(')'):
-                defline = defline + '()'
-            
-            fulldecls = FULL_DECL_REGEX.findall(methodoutput)
-            fulldecl = ''
-            if fulldecls:
-                fulldecl = fulldecls[0].strip()
-                fulldecl = fulldecl.replace('&lt;', '<').replace('&gt;', '>').replace('&quot;', '"').replace('&apos;', "'")
-                fulldecl = fulldecl.replace('&amp;', '&')
-            
-            
-            #print '%s :: %s :: %s\n  %s\n^%s\n' % (module, classnamename, methodname, defline, fulldecl)
-            #if not fulldecl:
-            #    print methodoutput + '\n\n'
-            original_namespace = ''
-            addRowRaw(module, classnamename, methodname, original_namespace, kind, defline, methodoutput, fulldecl)
-            
-            #print methodoutput
-            #print '????????'
-            #methodoutput = subprocess.check_output([ripath, '-d', inpath, '--no-standard-docs', '-f', 'rdoc', classname + '#' + methodname])
-            #print methodoutput
-            #print '$@$@$@$@'
-        
-        def dealwithconstants(constantslist):
-            for i, constant in enumerate(constantslist):
-                if constant.endswith(':'):
-                    constant = constant[:-1]
-                    
-                    explanation = constantslist[i + 1] if i < len(constantslist) else ''
-                    module, _, classnamename = classname.rpartition('::')
-                    original_namespace = ''
-                    addRowRaw(module, classnamename, constant, original_namespace, 'constant', '', explanation, '')
-            
-        try:
-            for methodname in instance_methods:
-                insertmethod(methodname, classname + '#' + methodname, 'method')
-            for methodname in class_methods:
-                insertmethod(methodname, classname + '::' + methodname, 'class_method')
-            
-            dealwithconstants(constants)
-            
-            for attrname in properties:
-                methodname = attrname.rpartition(' ')[2]
-                insertmethod(methodname, classname + '#' + methodname, 'property')
-            
-        except Exception as e:
-            print e
-        
-        module, _, classnamename = classname.rpartition('::')
-        original_namespace = ''
-        addRowRaw(module, '', classnamename, original_namespace,
-          'class',
-          '', classhtmloutput,
-          'class ' + classnamename + (' < ' + superclass if superclass else ''))
-        
-        #print
-        #print
-        #print sections
-    
-    #print classes
 
 INPATH = ''
 
@@ -433,27 +305,19 @@ def main(argv):
         visibility TEXT, canread BOOLEAN, canwrite BOOLEAN, issingleton BOOLEAN,
         superclass TEXT,
         
+        isDocumented BOOLEAN DEFAULT 0,
+                
         weighting REAL)""")
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
     
     # Find all relevant files
     fileexts = extensionsForLanguage(language)
     filepaths = []
-    '''
-    for root, dirs, files in os.walk(inpath):
-        for fp in files:
-            ext = os.path.splitext(fp)[1].lower()
-            fullpath = os.path.join(root, fp)
-            if ext in fileexts:
-                filepaths.append(fullpath)
-    '''
     
     if language == 'py':
         # Do everything in a transaction
         with db:
             parsePython(filepaths, inpath, outpath)
-    elif language == 'rb':
-        parseRuby(filepaths, inpath, outpath)
 
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]) or 0)

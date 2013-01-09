@@ -124,6 +124,7 @@ def main(argv):
         fullsource TEXT,
         visibility TEXT, canread BOOLEAN DEFAULT 1, canwrite BOOLEAN DEFAULT 1, issingleton BOOLEAN DEFAULT 0,
         superclass TEXT,
+        isDocumented BOOLEAN DEFAULT 0,
         
         weighting REAL)""")
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
