@@ -88,6 +88,7 @@ def main(argv):
         
         weighting REAL)""")
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
+    c.execute("CREATE INDEX symbols_typecode_index ON symbols (type_code, name COLLATE NOCASE)")
     
     print 'Begin'
     
@@ -141,6 +142,10 @@ def main(argv):
                       **recordargs)
         
     # print modules
+    with db:
+        db.execute("ANALYZE")
+    with db:
+        db.execute("VACUUM")
     
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]) or 0)

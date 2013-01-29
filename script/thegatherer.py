@@ -10,8 +10,6 @@ import re
 import inspect
 import contextlib
 
-def noexcept():
-
 def extensionsForLanguage(lang):
     if lang == 'py':
         return set(['.py'])
@@ -49,28 +47,30 @@ def filename2namespace(f):
     else:
         return os.path.splitext(f.replace('/', '::'))[0]
 
-def processsourcelines(obj):
+def processsourcelines(obj, kind):
     fullsource = ''
     linedecl = inspect.getsourcelines(obj)
     if not linedecl:
-        return ("", fullsource)
+        return ("", fullsource, kind)
                  
     linedecl = linedecl[0]
     if not linedecl:
-        return ("", fullsource)
+        return ("", fullsource, kind)
     
     # Ignore decorators
-    while linedecl and linedecl[0].startswith('@'):
+    while linedecl and linedecl[0].strip().startswith('@'):
+        if kind == 'method' and ('@classmethod' in linedecl[0] or '@staticmethod' in linedecl[0]):
+            kind = 'class_method'
         linedecl.pop(0)
     
     if not linedecl:
-        return ("", fullsource)
+        return ("", fullsource, kind)
     
     if len(linedecl) < 30:
         fullsource = '\n'.join(linedecl)
     
     linedecl = linedecl[0]
-    return (linedecl, fullsource)
+    return (linedecl, fullsource, kind)
 
 
 def addRow(kind, module, parent, name, fobj, obj, isDocumented):
@@ -86,8 +86,9 @@ def addRow(kind, module, parent, name, fobj, obj, isDocumented):
     
     if fobj:
         defline = fauxDefinition(name, fobj)
-        if kind == 'class_method' and ('(self, ' in defline or '(self)' in defline):
-            kind = 'method'
+        if kind == 'class_method':
+            if '(self, ' in defline or '(self)' in defline or (inspect.isroutine(fobj) and (not inspect.isfunction(fobj))):
+                kind = 'method'
     if obj:
         try:
             if hasattr(obj, '__module__') and obj.__module__:
@@ -134,7 +135,8 @@ def addRow(kind, module, parent, name, fobj, obj, isDocumented):
             pass
 
         try:
-            linedecl, fullsource = processsourcelines(obj)
+            linedecl, fullsource, kind = processsourcelines(obj, kind)
+            fullsource = ''
         except TypeError as e:
             pass
         except IOError as e:
@@ -265,6 +267,7 @@ def parsePython(filepaths, inpath, outpath):
     
     recParseModule(inpath, basecomp)
     
+    addRow('namespace', '', '', basecomp.replace('.', '::'), '', None, True)
     for prefix in modules:
         print 'NAMESPACE: ' + prefix
         addRow('namespace', '', '', prefix.replace('.', '::'), '', None, True)
@@ -308,16 +311,21 @@ def main(argv):
         isDocumented BOOLEAN DEFAULT 0,
                 
         weighting REAL)""")
+    
     c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
+    c.execute("CREATE INDEX symbols_typecode_index ON symbols (type_code, name COLLATE NOCASE)")
     
     # Find all relevant files
     fileexts = extensionsForLanguage(language)
     filepaths = []
     
-    if language == 'py':
-        # Do everything in a transaction
-        with db:
-            parsePython(filepaths, inpath, outpath)
-
+    # Do everything in a transaction
+    with db:
+        parsePython(filepaths, inpath, outpath)
+    with db:
+        db.execute("ANALYZE")
+    with db:
+        db.execute("VACUUM")
+            
 if __name__ == '__main__':
     sys.exit(main(sys.argv[1:]) or 0)
