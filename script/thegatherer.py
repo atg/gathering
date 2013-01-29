@@ -10,6 +10,8 @@ import re
 import inspect
 import contextlib
 
+builtinobjects = dir(__builtins__)
+
 def extensionsForLanguage(lang):
     if lang == 'py':
         return set(['.py'])
@@ -172,6 +174,10 @@ def parsePythonModule(mm, prefix):
         if hasattr(mm, '__all__'):
             mm_all = mm.__all__
         hasall = bool(mm_all)
+        
+        everything = dir(mm)
+        if mm == '':
+            everything = itertools.chain(everything, builtinobjects)
         
         for v in dir(mm):
             if v.startswith("_"):
