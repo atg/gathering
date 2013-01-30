@@ -214,8 +214,7 @@ def combinenames(a, b):
     return '.'.join(filter(bool, [a, b]))
 
 def parsePythonModule(mm, prefix):
-    extramodules[prefix.strip('.')] = False
-    
+    extramodules[prefix.strip('.')] = False    
     try:        
         mm_all = None
         if hasattr(mm, '__all__'):
@@ -291,6 +290,10 @@ def recParseModule(path, prefix=''):
                 continue
             elif modname == 'lib2to3':
                 continue
+            elif modname == 'antigravity':
+                continue
+            #elif modname != 'sqlite3':
+            #    continue
             
             try:
                 newPrefix = prefix
@@ -325,15 +328,20 @@ def parsePython(filepaths, inpath, outpath):
     recParseModule(inpath, basecomp)
     
     if isdoingbuiltins:
-        for k in extramodules:
+        for k in extramodules.copy():
             v = extramodules[k]
             if v == False:
                 continue
             parsePythonModule(v, k)
         for k in all_builtin_modules():
             if k not in extramodules:
-                v = __import__(k, fromlist='blah')
-                parsePythonModule(v, k)
+                try:
+                    v = __import__(k, fromlist='blah')
+                    parsePythonModule(v, k)
+                except Exception as e:
+                    if printExceptions:
+                        print 'EXCEPTION: ' + str(e)
+                        print traceback.format_exc()
     
     addRow('namespace', '', '', basecomp.replace('.', '::'), '', None, True)
     for prefix in modules:
