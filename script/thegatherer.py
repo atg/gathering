@@ -215,6 +215,8 @@ def combinenames(a, b):
 
 def parsePythonModule(mm, prefix):
     extramodules[prefix.strip('.')] = False
+    if prefix == 'antigravity':
+        return
     
     try:        
         mm_all = None
@@ -325,7 +327,7 @@ def parsePython(filepaths, inpath, outpath):
     recParseModule(inpath, basecomp)
     
     if isdoingbuiltins:
-        for k in extramodules:
+        for k in extramodules.copy():
             v = extramodules[k]
             if v == False:
                 continue
