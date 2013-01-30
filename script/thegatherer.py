@@ -167,8 +167,55 @@ def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, lin
 
 
 modules = set([])
+extramodules = {}
+
+
+
+import distutils.sysconfig as sysconfig
+def all_builtin_modules():
+    allmods = []
+    with open('fullmoduleindex.txt', 'r') as f:
+      for line in f:
+        line = line.strip()
+        if len(line) < 4: continue
+        if '(' in line: continue
+        if line.startswith('_'): continue
+        
+        n, _, d = line.partition('\t')
+        n, d = n.strip(), d.strip()
+        if not n: continue
+        allmods.append(n)
+    return set(allmods)
+    
+    def all_builtin_modules_inner():
+        std_lib = sysconfig.get_python_lib(standard_lib=True)
+        
+        for top, dirs, files in os.walk(std_lib):
+            for nm in files:
+                prefix = top[len(std_lib)+1:]
+                if prefix[:13] == 'site-packages':
+                    continue
+                if nm == '__init__.py':
+                    yield top[len(std_lib)+1:].replace(os.path.sep,'.')
+                elif nm[-3:] == '.py':
+                    yield os.path.join(prefix, nm)[:-3].replace(os.path.sep,'.')
+                elif nm[-3:] == '.so' and top[-11:] == 'lib-dynload':
+                    yield nm[0:-3]
+                
+        for builtin in sys.builtin_module_names:
+            yield builtin
+    
+    return set(x for x in all_builtin_modules_inner() if not x.startswith('_') and not '._' in x)
+
+
+def combinenames(a, b):
+    a = a.strip('.')
+    b = b.strip('.')
+    return '.'.join(filter(bool, [a, b]))
 
 def parsePythonModule(mm, prefix):
+    extramodules[prefix.strip('.')] = False
+    
     try:        
         mm_all = None
         if hasattr(mm, '__all__'):
@@ -223,9 +270,11 @@ def parsePythonModule(mm, prefix):
                         addRow('class_method', mp, v, vv, currentObject, currentObject, isDocumented)
                     elif inspect.ismethod(currentObject):
                         addRow('class_method', mp, v, vv, currentObject, currentObject, isDocumented)
-            #elif inspect.ismodule(o):
-                #modules.append(v)
-            
+            elif inspect.ismodule(o):
+                k = combinenames(mp, v)
+                if k not in extramodules:
+                    extramodules[k] = o
+                
             modules.add(prefix)
             
     except Exception as e:
@@ -268,10 +317,23 @@ def parsePython(filepaths, inpath, outpath):
     sys.path.insert(0, lastcomp)
     os.environ['DJANGO_SETTINGS_MODULE'] = 'placeholdersettings'
     
+    isdoingbuiltins = False
     if basecomp in ['python2.7', 'python3.3', 'python3.4', 'python3.5', 'python3.6', 'python3.7', 'python3.8', 'python3.9']:
         basecomp = ''
+        isdoingbuiltins = True
     
     recParseModule(inpath, basecomp)
+    
+    if isdoingbuiltins:
+        for k in extramodules:
+            v = extramodules[k]
+            if v == False:
+                continue
+            parsePythonModule(v, k)
+        for k in all_builtin_modules():
+            if k not in extramodules:
+                v = __import__(k, fromlist='blah')
+                parsePythonModule(v, k)
     
     addRow('namespace', '', '', basecomp.replace('.', '::'), '', None, True)
     for prefix in modules:
@@ -284,6 +346,7 @@ def splitlinesstrip(s):
 INPATH = ''
 
 def main(argv):
+    
     if len(argv) != 3:
         print "thegatherer.py <language> <input> <output>"
         return 1
