@@ -253,7 +253,7 @@ def parsePythonModule(mm, prefix):
                 # Don't uncomment this, it's for unignoring compiled functions
                 #if not (inspect.isroutine(o) and (not inspect.isfunction(o))):
         
-            mp = prefix + '.' if prefix != '___builtins' else ''
+            mp = prefix + '.'
             ismatchable = True
             
             #print("%s -- %o %o %o %o" % (mp+v, inspect.ismethod(o), inspect.isfunction(o), inspect.isroutine(o), inspect.isbuiltin(o) ))
