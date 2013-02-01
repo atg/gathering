@@ -222,7 +222,7 @@ def parsePythonModule(mm, prefix):
         hasall = bool(mm_all)
         
         everything = dir(mm)
-        if mm == '':
+        if prefix == '':
             everything = itertools.chain(everything, builtinobjects)
         
         for v in dir(mm):
