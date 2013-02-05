@@ -56,6 +56,8 @@ names.each do |n|
   if n == 'ActiveRecord::Base'
     next
   end
+  
+begin 
   cl = store.load_class(n)
   if cl.kind_of?(RDoc::NormalModule)
     handle_class(n, cl, true, htmler, records)
@@ -64,6 +66,8 @@ names.each do |n|
   else
     #puts("????")
   end
+rescue
+end
 end
 
 #puts "DONE CLASSES"
@@ -185,15 +189,21 @@ end
 
 classmethods.each do |ims|
   ims[1].each do |im|
-    meth = store.load_method(ims[0], im)
-    handle_method(meth, records, ims[0], im, false, htmler)
+    begin
+      meth = store.load_method(ims[0], im)
+      handle_method(meth, records, ims[0], im, false, htmler)
+    rescue
+    end
   end
 end
 
 instancemethods.each do |ims|
   ims[1].each do |im|    
-    meth = store.load_method(ims[0], '#' + im)
-    handle_method(meth, records, ims[0], im, true, htmler)
+    begin
+      meth = store.load_method(ims[0], '#' + im)
+      handle_method(meth, records, ims[0], im, true, htmler)
+    rescue
+    end
   end
 end
 
