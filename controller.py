@@ -66,13 +66,12 @@ def main():
     # Look through ruby
     # ri --list-doc-dirs
     # print subprocess.check_output(['/usr/bin/which', 'ri'])
-    
+    '''
     rubypaths = subprocess.check_output(['/usr/bin/env', 'ri', '--list-doc-dirs']).splitlines()
     for rubypath in rubypaths:
         issite = rubypath.endswith('/site')
         if (not rubypath.endswith('/ri')) and (not issite):
             continue
-        
         
         if issite:
             
@@ -82,6 +81,7 @@ def main():
             
             outpath = 'databases/v%d/%s--%s.db' % (VERSION, 'ruby', stdlibversion[0])
         else:
+            continue # DISABLE NONSTDLIB
             outcomponents = RUBY_COMPONENT_REGEX.findall(rubypath)
             if not outcomponents:
                 continue
@@ -98,7 +98,8 @@ def main():
         subprocess.check_call(['/usr/bin/python', 'script/gath-rb.py', 'rb', rubypath, outpath])
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
-    
+
+    '''
     pypaths = subprocess.check_output(['/usr/bin/env', 'pip', 'freeze']).splitlines()
     syspath = sys.path
     pyi = 0
@@ -142,9 +143,9 @@ def main():
             break
     '''
     
-    pystdlib_outpath = 'databases/v%d/python--2.7.db' % VERSION
-    pystdlib_outpath = os.path.abspath(pystdlib_outpath)
-    subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', '/usr/lib/python2.7', pystdlib_outpath], cwd='script')
+    #pystdlib_outpath = 'databases/v%d/python--2.7.db' % VERSION
+    #pystdlib_outpath = os.path.abspath(pystdlib_outpath)
+    #subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', '/usr/lib/python2.7', pystdlib_outpath], cwd='script')
     
 
 if __name__ == '__main__':
