@@ -18,7 +18,7 @@ stdlib19_classes = set(["Array", "Bignum", "BasicObject", "Object", "Module", "C
 
 stdlib19 = stdlib19_modules | stdlib19_classes
 
-with open('ruby1.9.3stdlib.json', 'r') as f:
+with open('script/ruby1.9.3stdlib.json', 'r') as f:
     stdlib_mapping = json.load(f)
     for lib in stdlib_mapping.copy():
         stdlib_mapping[lib] = set(x for x in stdlib_mapping[lib] if x not in stdlib19)
