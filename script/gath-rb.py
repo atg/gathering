@@ -18,6 +18,11 @@ stdlib19_classes = set(["Array", "Bignum", "BasicObject", "Object", "Module", "C
 
 stdlib19 = stdlib19_modules | stdlib19_classes
 
+with open('ruby1.9.3stdlib.json', 'r') as f:
+    stdlib_mapping = json.load(f)
+    for lib in stdlib_mapping.copy():
+        stdlib_mapping[lib] = set(x for x in stdlib_mapping[lib] if x not in stdlib19)
+
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
 
@@ -107,10 +112,29 @@ def main(argv):
             elif 'fullsignature' in record:
                 signature = record['fullsignature']
             
-            if namespace in stdlib19 or combine(namespace, parents) in stdlib19 or combine(namespace, parents, name) in stdlib19:
+            record['libraryisstdlib'] = False
+            record['libraryname'] = ''
+            record['librarypath'] = ''
+            
+            full_combined_name = combine(namespace, parents, name)
+            if namespace in stdlib19 or combine(namespace, parents) in stdlib19 or full_combined_name in stdlib19:
                 record['libraryisstdlib'] = True
-                record['libraryname'] = ''
-                record['librarypath'] = ''
+            else:
+                shouldbreak = False
+                for lib in stdlib_mapping:
+                    if full_combined_name in stdlib_mapping[lib]:
+                        record['libraryname'] = lib.partition('/')[0]
+                        record['librarypath'] = lib
+                        break
+                    else:
+                        for prefix in stdlib_mapping[lib]:
+                            if full_combined_name.startswith(prefix + '::'):
+                                record['libraryname'] = lib.partition('/')[0]
+                                record['librarypath'] = lib
+                                shouldbreak = True
+                                break
+                    if shouldbreak:
+                        break
             
             # TODO: CONSTANTS
             # html = 
