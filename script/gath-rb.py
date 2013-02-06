@@ -70,7 +70,7 @@ def main(argv):
         if record['type'] == 'namespace':
             modules.append(record['fullname'])
     
-    allowedkeys = {'fullsource', 'superclass', 'visibility', 'canread', 'canwrite', 'issingleton'}
+    allowedkeys = {'fullsource', 'superclass', 'visibility', 'canread', 'canwrite', 'issingleton', 'libraryisstdlib', 'libraryname', 'librarypath'}
     
     with db:
         for record in j:
