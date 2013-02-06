@@ -17,6 +17,7 @@ import re
 import inspect
 import json
 from pprint import pprint
+from createdb import *
 
 printExceptions = True
 
@@ -47,17 +48,7 @@ def filename2namespace(f):
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
 
-def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, **others):
-    qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
-    print '%s, %s  [%s] // %d' % (kind, qualname, defline, len(docs))
-    #print docs
-    
-    fullsource = others['fullsource'] if 'fullsource' in others else ''
-    superclass = others['superclass'] if 'superclass' in others else ''
-    
-    with db:
-        c = db.cursor()
-        c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, fullsource, superclass))
+
 
 def splitlinesstrip(s):
     return [line.strip() for line in s.splitlines() if line.strip()]
@@ -90,7 +81,7 @@ def parseJS(filepaths, inpath, outpath):
             if not defline:
                 defline = ''
             #print defline
-            addRowRaw('', '', name, '', kind, defline, '', '')
+            addRowRaw(db, '', '', name, '', kind, defline, '', '')
         
         #print output
     

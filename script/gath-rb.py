@@ -7,43 +7,27 @@ import re
 import inspect
 import json
 from pprint import pprint
+from createdb import *
 
 printExceptions = True
 db = None
 
+stdlib19_modules = set(["Comparable", "Kernel", "Enumerable", "Errno", "FileTest", "File::Constants", "GC", "ObjectSpace", "GC::Profiler", "IO::WaitReadable", "IO::WaitWritable", "Marshal", "Math", "Process", "Process::UID", "Process::GID", "Process::Sys", "Signal"])
+
+stdlib19_classes = set(["Array", "Bignum", "BasicObject", "Object", "Module", "Class", "Complex", "NilClass", "Numeric", "String", "Float", "Fiber", "FiberError", "Continuation", "Dir", "File", "Encoding", "Enumerator", "StopIteration", "Enumerator::Generator", "Enumerator::Yielder", "Exception", "SystemExit", "fatal", "SignalException", "Interrupt", "StandardError", "TypeError", "ArgumentError", "IndexError", "KeyError", "RangeError", "ScriptError", "SyntaxError", "LoadError", "NotImplementedError", "NameError", "NoMethodError", "RuntimeError", "SecurityError", "NoMemoryError", "EncodingError", "SystemCallError", "Encoding::CompatibilityError", "File::Stat", "IO", "Hash", "ENV", "IOError", "EOFError", "ARGF", "RubyVM", "RubyVM::InstructionSequence", "Math::DomainError", "ZeroDivisionError", "FloatDomainError", "Integer", "Fixnum", "Data", "TrueClass", "FalseClass", "Mutex", "Thread", "Proc", "LocalJumpError", "SystemStackError", "Method", "UnboundMethod", "Binding", "Process::Status", "Random", "Range", "Rational", "RegexpError", "Regexp", "MatchData", "Symbol", "Struct", "ThreadGroup", "ThreadError", "Time", "Encoding::UndefinedConversionError", "Encoding::InvalidByteSequenceError", "Encoding::ConverterNotFoundError", "Encoding::Converter", "RubyVM::Env"])
+
+stdlib19 = stdlib19_modules | stdlib19_classes
+
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
 
-def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, linedecl, **others):
-    qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
-    print '%s, %s  [%s] // %d' % (kind, qualname, defline, len(docs))
-    #print docs
 
-    fullsource = others['fullsource'] if 'fullsource' in others else ''
-    superclass = others['superclass'] if 'superclass' in others else ''
-    
-    visibility = others['visibility'] if 'visibility' in others else ''
-    canread = others['canread'] if 'canread' in others else ''
-    canwrite = others['canwrite'] if 'canwrite' in others else ''
-    issingleton = others['issingleton'] if 'issingleton' in others else ''
-    
-    c = db.cursor()
-    c.execute("""INSERT INTO symbols (
-        namespace, parents, name, original_namespace,
-        type_code, declaration, documentation, sourcedecl,
-        fullsource, superclass,
-        visibility, canread, canwrite, issingleton) VALUES (
-        ?, ?, ?, ?,
-        ?, ?, ?, ?,
-        ?, ?,
-        ?, ?, ?, ?)""", (
-        module, parent, name, original_namespace,
-        kind, defline, removeNonAscii(docs), linedecl,
-        fullsource, superclass,
-        visibility, canread, canwrite, issingleton))
 
 def splitlinesstrip(s):
     return [line.strip() for line in s.splitlines() if line.strip()]
+
+def combine(*vals):
+    return '::'.join(x for x in vals if x)
 
 INPATH = ''
 
@@ -72,23 +56,7 @@ def main(argv):
     
     global db
     db = sqlite3.connect(outpath)
-    
-    c = db.cursor()
-    c.execute("""CREATE TABLE symbols (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        namespace TEXT, parents TEXT, name TEXT,
-        original_namespace TEXT,
-        type_code TEXT,
-        declaration TEXT, sourcedecl TEXT, documentation TEXT,
-        
-        fullsource TEXT,
-        visibility TEXT, canread BOOLEAN, canwrite BOOLEAN, issingleton BOOLEAN,
-        superclass TEXT,
-        isDocumented BOOLEAN DEFAULT 0,
-        
-        weighting REAL)""")
-    c.execute("CREATE INDEX symbols_index ON symbols (name COLLATE NOCASE)")
-    c.execute("CREATE INDEX symbols_typecode_index ON symbols (type_code, name COLLATE NOCASE)")
+    createdb(db)
     
     print 'Begin'
     
@@ -113,10 +81,17 @@ def main(argv):
                 if parents.startswith(mod + '::') and len(mod) > len(namespace):
                     namespace = mod
                     newparents = parents[len(mod + '::'):]
+                    break
+                elif parents == mod:
+                    namespace = mod
+                    newparents = ''
+                    break
             parents = newparents
         
             #print '  ' + str((namespace, parents, name))
             #pprint(record)
+            
+            kind = record['type']
         
             if 'fullsignature' in record:
                 fullsignature = record['fullsignature']
@@ -131,13 +106,18 @@ def main(argv):
                 signature = record['signature']
             elif 'fullsignature' in record:
                 signature = record['fullsignature']
-        
+            
+            if namespace in stdlib19 or combine(namespace, parents) in stdlib19 or combine(namespace, parents, name) in stdlib19:
+                record['libraryisstdlib'] = True
+                record['libraryname'] = ''
+                record['librarypath'] = ''
+            
             # TODO: CONSTANTS
             # html = 
             recordargs = { k: record[k] for k in record if k in allowedkeys }            
             
-            addRowRaw(namespace, parents, name,
-                      namespace, record['type'],
+            addRowRaw(db, namespace, parents, name,
+                      namespace, kind,
                       signature, record['html'], fullsignature,
                       **recordargs)
         

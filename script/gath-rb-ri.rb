@@ -17,12 +17,16 @@ store.load_cache()
 def handle_class(n, cl, ismodule, htmlifier, records)
   record = {}
   
-  #puts "CLASS " + n
+  #puts ("CLASS " + cl.instance_variables.to_s)
+  #puts "\n"
+  #return
+  
   
   record[:name] = n.rpartition("::")[2]
   record[:parents] = n.rpartition("::")[0]
   record[:fullname] = n
   record[:fullsignature] = cl.definition()
+  #record[:filepath] = cl.
   
   if ismodule
     record[:type] = 'namespace'
