@@ -1,3 +1,6 @@
+def _removeNonAscii(s):
+    return "".join(i for i in s if ord(i)<128)
+
 def addRowRaw(db, module, parent, name, original_namespace, kind, defline, docs, linedecl, **others):
     qualname = '::'.join(filter(lambda x: bool(x), [module, parent, name]))
     print '%s, %s  [%s] // %d' % (kind, qualname, defline, len(docs))
@@ -28,7 +31,7 @@ def addRowRaw(db, module, parent, name, original_namespace, kind, defline, docs,
         ?, ?, ?, ?,
         ?, ?, ?)""", (
         module, parent, name, original_namespace,
-        kind, defline, removeNonAscii(docs), linedecl,
+        kind, defline, _removeNonAscii(docs), linedecl,
         fullsource, superclass,
         visibility, canread, canwrite, issingleton,
         librarypath, libraryname, libraryisstdlib))
@@ -45,7 +48,7 @@ def addRowRaw(module, parent, name, original_namespace, kind, defline, docs, lin
     isDocumented = others['isDocumented'] if 'isDocumented' in others else False
 
     c = db.cursor()
-    c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass, isDocumented) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, removeNonAscii(docs), linedecl, removeNonAscii(fullsource), superclass, isDocumented))
+    c.execute("INSERT INTO symbols (namespace, parents, name, original_namespace, type_code, declaration, documentation, sourcedecl, fullsource, superclass, isDocumented) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)", (module, parent, name, original_namespace, kind, defline, _removeNonAscii(docs), linedecl, _removeNonAscii(fullsource), superclass, isDocumented))
 '''
 
 def createdb(db):
