@@ -26,7 +26,21 @@ with open('script/ruby1.9.3stdlib.json', 'r') as f:
 def removeNonAscii(s):
     return "".join(i for i in s if ord(i)<128)
 
-
+def commonprefix(a, b):
+    if not b: return a
+    if not a: return b
+    if a == b: return a
+    _a = a.split('/')
+    _b = b.split('/')
+    maxworked = -1
+    for i, (x, y) in enumerate(zip(_a, _b)):
+        if x == y:
+            maxworked = i
+        else:
+            break
+    if maxworked == -1:
+        return a
+    return '/'.join(_a[0:maxworked+1])
 
 def splitlinesstrip(s):
     return [line.strip() for line in s.splitlines() if line.strip()]
@@ -124,15 +138,15 @@ def main(argv):
                 for lib in stdlib_mapping:
                     if full_combined_name in stdlib_mapping[lib]:
                         record['libraryname'] = lib.partition('/')[0]
-                        record['librarypath'] = lib
-                        break
+                        record['librarypath'] = commonprefix(lib, record['librarypath'])
+                        #break
                     else:
                         for prefix in stdlib_mapping[lib]:
                             if full_combined_name.startswith(prefix + '::'):
                                 record['libraryname'] = lib.partition('/')[0]
-                                record['librarypath'] = lib
-                                shouldbreak = True
-                                break
+                                record['librarypath'] = commonprefix(lib, record['librarypath'])
+                                #shouldbreak = True
+                                #break
                     if shouldbreak:
                         break
             
