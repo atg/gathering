@@ -100,7 +100,7 @@ def main(argv):
             
             kind = record['type']
             
-            if fullparents == 'Kernel'
+            if fullparents == 'Kernel':
                 fullparents = ''
                 if kind == 'method':
                     kind = 'function'
