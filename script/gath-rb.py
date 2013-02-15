@@ -63,6 +63,8 @@ def main(argv):
     global INPATH
     INPATH = inpath
     
+    issystem = '.rvm/rubies/' in inpath
+    
     try: os.unlink(outpath)
     except: pass
     
@@ -85,40 +87,58 @@ def main(argv):
             modules.append(record['fullname'])
     
     allowedkeys = {'fullsource', 'superclass', 'visibility', 'canread', 'canwrite', 'issingleton', 'libraryisstdlib', 'libraryname', 'librarypath'}
+    invalidKernelNames = set(['j', 'jj', 'p', 'pp'])
     
     with db:
         for record in j:
             #print record['fullname']
             if record['type'] == 'method' or record['type'] == 'property':
-                parents, _, name = record['fullname'].rpartition('#')
+                fullparents, _, name = record['fullname'].rpartition('#')
             else:
-                parents, _, name = record['fullname'].rpartition('::')
-        
-            namespace = ''
-            newparents = parents
-            for mod in modules:
-                if parents.startswith(mod + '::') and len(mod) > len(namespace):
-                    namespace = mod
-                    newparents = parents[len(mod + '::'):]
-                    break
-                elif parents == mod:
-                    namespace = mod
-                    newparents = ''
-                    break
-            parents = newparents
-        
+                fullparents, _, name = record['fullname'].rpartition('::')
+            
+            
+            kind = record['type']
+            
+            if fullparents == 'Kernel'
+                fullparents = ''
+                if kind == 'method':
+                    kind = 'function'
+                if kind == 'class_method':
+                    continue
+                if name in invalidKernelNames:
+                    continue
+            
+            if name.startswith('_'):
+                continue
+            if not name:
+                continue
+            
+            if kind == 'method' or kind == 'class_method' or kind == 'function' or kind == 'property' or kind == 'class_property':
+                if name[0].upper() == name[0]: # must be lowercase
+                    continue
+            else:
+                if name[0].lower() == name[0]: # must be uppercase
+                    continue
+            
+            if fullparents == '':
+                namespace = ''
+                parents = ''
+            elif kind == 'method' or kind == 'class_method':
+                namespace, _, parents = fullparents.rpartition('::')
+            else:
+                namespace = fullparents
+            
             #print '  ' + str((namespace, parents, name))
             #pprint(record)
             
-            kind = record['type']
-        
             if 'fullsignature' in record:
                 fullsignature = record['fullsignature']
             elif 'signature' in record:
                 fullsignature = record['signature']
             elif 'minisignature' in record:
                 fullsignature = record['minisignature']
-        
+            
             if 'minisignature' in record:
                 signature = record['minisignature']
             elif 'signature' in record:
@@ -128,27 +148,29 @@ def main(argv):
             
             record['libraryisstdlib'] = False
             record['libraryname'] = ''
-            record['librarypath'] = ''
+            record['librarypath'] = ''            
             
-            full_combined_name = combine(namespace, parents, name)
-            if namespace in stdlib19 or combine(namespace, parents) in stdlib19 or full_combined_name in stdlib19:
-                record['libraryisstdlib'] = True
-            else:
-                shouldbreak = False
-                for lib in stdlib_mapping:
-                    if full_combined_name in stdlib_mapping[lib]:
-                        record['libraryname'] = lib.partition('/')[0]
-                        record['librarypath'] = commonprefix(lib, record['librarypath'])
-                        #break
-                    else:
-                        for prefix in stdlib_mapping[lib]:
-                            if full_combined_name.startswith(prefix + '::'):
-                                record['libraryname'] = lib.partition('/')[0]
-                                record['librarypath'] = commonprefix(lib, record['librarypath'])
-                                #shouldbreak = True
-                                #break
-                    if shouldbreak:
-                        break
+            if issystem:
+                full_combined_name = combine(namespace, parents, name)
+                if namespace in stdlib19 or combine(namespace, parents) in stdlib19 or full_combined_name in stdlib19:
+                    record['libraryisstdlib'] = True
+                else:
+                    shouldbreak = False
+                    for lib in stdlib_mapping:
+                        if full_combined_name in stdlib_mapping[lib]:
+                            record['libraryname'] = lib.partition('/')[0]
+                            record['librarypath'] = commonprefix(lib, record['librarypath'])
+                            #break
+                        else:
+                            for prefix in stdlib_mapping[lib]:
+                                if full_combined_name.startswith(prefix + '::'):
+                                    record['libraryname'] = lib.partition('/')[0]
+                                    record['librarypath'] = commonprefix(lib, record['librarypath'])
+                                    #shouldbreak = True
+                                    #break
+                        if shouldbreak:
+                            break
+                
             
             # TODO: CONSTANTS
             # html = 
