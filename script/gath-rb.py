@@ -70,7 +70,7 @@ def main(argv):
     
     jsonstr = subprocess.check_output(['/usr/bin/env', 'ruby', 'script/gath-rb-ri.rb', inpath]).strip()
     print 'End'
-    print jsonstr
+    'print jsonstr'
     j = json.loads(jsonstr)
     if not j or len(j) < 3:
         return 0
@@ -128,6 +128,7 @@ def main(argv):
                 namespace, _, parents = fullparents.rpartition('::')
             else:
                 namespace = fullparents
+                parents = ''
             
             #print '  ' + str((namespace, parents, name))
             #pprint(record)

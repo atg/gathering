@@ -74,14 +74,14 @@ def main():
             continue
         
         if issite:
-            
+            continue # DISABLE STDLIB
             stdlibversion = RUBY_VERSION_REGEX.findall(rubypath)
             if not stdlibversion:
                 continue
             
             outpath = 'databases/v%d/%s--%s.db' % (VERSION, 'ruby', stdlibversion[0])
         else:
-            continue # DISABLE NONSTDLIB
+            # continue # DISABLE NONSTDLIB
             outcomponents = RUBY_COMPONENT_REGEX.findall(rubypath)
             if not outcomponents:
                 continue
