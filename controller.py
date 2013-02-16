@@ -114,6 +114,8 @@ def main():
         if '-' in outcomp_version:
             outcomp_version, _, _ = outcomp_version.partition('-')
         
+        if '.' in outcomp_name:
+            continue
         outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, 'python', outcomp_name, outcomp_version)
         outpath = os.path.abspath(outpath)
         # Ignore it if it exists
@@ -139,8 +141,8 @@ def main():
             os.unlink(outpath)
         
         pyi += 1
-        if pyi == 100:
-            break
+        #if pyi == 100:
+        #    break
     '''
     
     #pystdlib_outpath = 'databases/v%d/python--2.7.db' % VERSION
