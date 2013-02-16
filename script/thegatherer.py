@@ -282,7 +282,7 @@ def recParseModule(path, prefix=''):
         for importer, modname, ispkg in pkgutil.iter_modules([path], ''):
             if modname.startswith('_'):
                 continue
-            elif modname == 'lib2to3':
+            elif '2to3' in modname:
                 continue
             elif modname == 'antigravity':
                 continue
