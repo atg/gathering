@@ -35,7 +35,7 @@ RUBY_COMPONENT_REGEX = re.compile(r'/doc/([^/]+)\-([^/]+)/ri')
 RUBY_VERSION_REGEX = re.compile(r'/ruby-([^/\-]+)-p\d+/')
 
 def main():
-    '''
+    
     # Look through the libraries
     for parent, name, version, path, isFile in scanPaths():
         path = os.path.abspath(path)
@@ -99,7 +99,7 @@ def main():
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
         # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
 
-    '''
+    ''
     pypaths = subprocess.check_output(['/usr/bin/env', 'pip', 'freeze']).splitlines()
     syspath = sys.path
     pyi = 0
