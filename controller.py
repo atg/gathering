@@ -35,120 +35,132 @@ RUBY_COMPONENT_REGEX = re.compile(r'/doc/([^/]+)\-([^/]+)/ri')
 RUBY_VERSION_REGEX = re.compile(r'/ruby-([^/\-]+)-p\d+/')
 
 def main():
-    '''
-    # Look through the libraries
-    for parent, name, version, path, isFile in scanPaths():
-        path = os.path.abspath(path)
+    action = sys.argv[1]
+    
+    if action == 'libs':
+        # Look through the libraries
+        for parent, name, version, path, isFile in scanPaths():
+            path = os.path.abspath(path)
         
-        print (parent, name, version, path, isFile)
+            print (parent, name, version, path, isFile)
         
-        # See if we have indexed this particular one
-        outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, parent, name, version)
-        outpath = os.path.abspath(outpath)
-        print '  ' + outpath
+            # See if we have indexed this particular one
+            outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, parent, name, version)
+            outpath = os.path.abspath(outpath)
+            print '  ' + outpath
         
-        # Ignore it if it exists
-        if os.path.exists(outpath):
-            continue
+            # Ignore it if it exists
+            if os.path.exists(outpath):
+                continue
         
-        if parent == 'php':
-            pass #subprocess.check_output(['script/gath-php.py', 'php', path, outpath])
-        elif parent == 'js':
-            pass #subprocess.check_call(['/usr/bin/python', 'gath-js.py', 'js', path, outpath], cwd='script')
-        elif parent == 'python':
-            print ['/usr/bin/python', 'thegatherer.py', 'py', path + '/' + name, outpath]
-            subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', path + '/' + name, outpath], cwd='script')
-        elif parent == 'ruby':
-            pass #subprocess.check_output(['script/thegatherer.py', 'rb', path, outpath])
-        else:
-            continue
+            if parent == 'php':
+                pass #subprocess.check_output(['script/gath-php.py', 'php', path, outpath])
+            elif parent == 'js':
+                pass #subprocess.check_call(['/usr/bin/python', 'gath-js.py', 'js', path, outpath], cwd='script')
+            elif parent == 'python':
+                print ['/usr/bin/python', 'thegatherer.py', 'py', path + '/' + name, outpath]
+                subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', path + '/' + name, outpath], cwd='script')
+            elif parent == 'ruby':
+                pass #subprocess.check_output(['script/thegatherer.py', 'rb', path, outpath])
+            else:
+                continue
     
     # Look through ruby
     # ri --list-doc-dirs
     # print subprocess.check_output(['/usr/bin/which', 'ri'])
     
-    rubypaths = subprocess.check_output(['/usr/bin/env', 'ri', '--list-doc-dirs']).splitlines()
-    for rubypath in rubypaths:
-        issite = rubypath.endswith('/site')
-        if (not rubypath.endswith('/ri')) and (not issite):
-            continue
-        
-        if issite:
-            continue # DISABLE STDLIB
-            stdlibversion = RUBY_VERSION_REGEX.findall(rubypath)
-            if not stdlibversion:
+    elif action == 'ruby.gems' or action == 'ruby.stdlib':
+        rubypaths = subprocess.check_output(['/usr/bin/env', 'ri', '--list-doc-dirs']).splitlines()
+        for rubypath in rubypaths:
+            issite = rubypath.endswith('/site')
+            if (not rubypath.endswith('/ri')) and (not issite):
                 continue
+        
+            if issite:
+                if action != 'ruby.stdlib':
+                    continue
+                stdlibversion = RUBY_VERSION_REGEX.findall(rubypath)
+                if not stdlibversion:
+                    continue
             
-            outpath = 'databases/v%d/%s--%s.db' % (VERSION, 'ruby', stdlibversion[0])
-        else:
-            # continue # DISABLE NONSTDLIB
-            outcomponents = RUBY_COMPONENT_REGEX.findall(rubypath)
-            if not outcomponents:
-                continue
-            
-            outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, 'ruby', outcomponents[0][0], outcomponents[0][1])
-        outpath = os.path.abspath(outpath)
-        # Ignore it if it exists
-        if os.path.exists(outpath):
-            continue
-        
-        print rubypath
-        print '  ' + outpath
-        
-        subprocess.check_call(['/usr/bin/python', 'script/gath-rb.py', 'rb', rubypath, outpath])
-        # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
-        # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
-
-    '''
-    pypaths = subprocess.check_output(['/usr/bin/env', 'pip', 'freeze']).splitlines()
-    syspath = sys.path
-    pyi = 0
-    for pypath in pypaths:
-        if not '==' in pypath:
-            continue
-        
-        outcomp_name, _, outcomp_version = pypath.partition('==')
-        if (not outcomp_name) or (not outcomp_name):
-            continue
-        
-        if '-' in outcomp_version:
-            outcomp_version, _, _ = outcomp_version.partition('-')
-        
-        if '.' in outcomp_name:
-            continue
-        outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, 'python', outcomp_name, outcomp_version)
-        outpath = os.path.abspath(outpath)
-        # Ignore it if it exists
-        if os.path.exists(outpath):
-            continue
-        
-        for p in syspath:
-            fullpypath = os.path.join(p, outcomp_name)
-            if os.path.exists(fullpypath) and os.path.isdir(fullpypath):
-                break
+                outpath = 'databases/v%d/%s--%s.db' % (VERSION, 'ruby', stdlibversion[0])
             else:
-                fullpypath = None
+                if action != 'ruby.gems':
+                    continue
+                outcomponents = RUBY_COMPONENT_REGEX.findall(rubypath)
+                if not outcomponents:
+                    continue
+            
+                outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, 'ruby', outcomponents[0][0], outcomponents[0][1])
+            outpath = os.path.abspath(outpath)
+            # Ignore it if it exists
+            if os.path.exists(outpath):
+                continue
         
-        if not fullpypath:
-            continue
+            print rubypath
+            print '  ' + outpath
         
-        print fullpypath
-        print '  ' + outpath
+            subprocess.check_call(['/usr/bin/python', 'script/gath-rb.py', 'rb', rubypath, outpath])
+            # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
+            # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
+
+    elif action == 'python.cheeses':
+        pypaths = subprocess.check_output(['/usr/bin/env', 'pip', 'freeze']).splitlines()
+        syspath = sys.path
+        pyi = 0
+        for pypath in pypaths:
+            if not '==' in pypath:
+                continue
         
-        try:
-            subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
-        except subprocess.CalledProcessError as e:
-            os.unlink(outpath)
+            outcomp_name, _, outcomp_version = pypath.partition('==')
+            if (not outcomp_name) or (not outcomp_name):
+                continue
         
-        pyi += 1
-        #if pyi == 100:
-        #    break
-    '''
+            if '-' in outcomp_version:
+                outcomp_version, _, _ = outcomp_version.partition('-')
+        
+            if '.' in outcomp_name:
+                continue
+            outpath = 'databases/v%d/%s--%s-%s.db' % (VERSION, 'python', outcomp_name, outcomp_version)
+            outpath = os.path.abspath(outpath)
+            # Ignore it if it exists
+            if os.path.exists(outpath):
+                continue
+        
+            for p in syspath:
+                fullpypath = os.path.join(p, outcomp_name)
+                if os.path.exists(fullpypath) and os.path.isdir(fullpypath):
+                    break
+                else:
+                    fullpypath = None
+        
+            if not fullpypath:
+                continue
+        
+            print fullpypath
+            print '  ' + outpath
+        
+            try:
+                subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', fullpypath, outpath], cwd='script')
+            except subprocess.CalledProcessError as e:
+                os.unlink(outpath)
+        
+            pyi += 1
+            #if pyi == 100:
+            #    break
     
-    #pystdlib_outpath = 'databases/v%d/python--2.7.db' % VERSION
-    #pystdlib_outpath = os.path.abspath(pystdlib_outpath)
-    #subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', '/usr/lib/python2.7', pystdlib_outpath], cwd='script')
-    '''
+    elif action == 'python.stdlib':
+        pystdlib_outpath = 'databases/v%d/python--2.7.db' % VERSION
+        pystdlib_outpath = os.path.abspath(pystdlib_outpath)
+        subprocess.check_call(['/usr/bin/python', 'thegatherer.py', 'py', '/usr/lib/python2.7', pystdlib_outpath], cwd='script')
+    else:
+        print '''
+        libs
+        ruby.gems
+        ruby.stdlib
+        python.cheeses
+        python.stdlib
+        '''.strip()
 
 if __name__ == '__main__':
     main()
