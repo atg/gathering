@@ -267,7 +267,9 @@ def parsePythonModule(mm, prefix):
                 k = combinenames(mp, v)
                 if k not in extramodules:
                     extramodules[k] = o
-                
+            else:
+                addRow('global', mp, '', v, o, o, isDocumented)
+            
             modules.add(prefix)
             
     except Exception as e:
@@ -286,6 +288,8 @@ def recParseModule(path, prefix=''):
                 continue
             elif modname == 'antigravity':
                 continue
+            elif 'test' in modname:
+                continue
             #elif modname != 'sqlite3':
             #    continue
             
@@ -302,6 +306,10 @@ def recParseModule(path, prefix=''):
                 if printExceptions:
                     print 'EXCEPTION: ' + str(e)
                     print traceback.format_exc() 
+        if prefix:
+            mm = __import__(prefix, fromlist='blah')
+            parsePythonModule(mm, prefix)
+        
     except Exception as e:
         if printExceptions:
             print 'EXCEPTION: ' + str(e)
