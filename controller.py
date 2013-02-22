@@ -1,6 +1,6 @@
 import os, subprocess, re, sys
 
-VERSION = 1
+VERSION = 2
 
 
 def handlePath(p, p2, isFile):
@@ -71,14 +71,17 @@ def main():
     
     elif action == 'ruby.gems' or action == 'ruby.stdlib':
         rubypaths = subprocess.check_output(['/usr/bin/env', 'ri', '--list-doc-dirs']).splitlines()
+        print rubypaths
         for rubypath in rubypaths:
             issite = rubypath.endswith('/site')
             if (not rubypath.endswith('/ri')) and (not issite):
                 continue
         
             if issite:
+                print 'found a site'
                 if action != 'ruby.stdlib':
                     continue
+                print 'action ok'
                 stdlibversion = RUBY_VERSION_REGEX.findall(rubypath)
                 if not stdlibversion:
                     continue
@@ -99,7 +102,7 @@ def main():
         
             print rubypath
             print '  ' + outpath
-        
+            
             subprocess.check_call(['/usr/bin/python', 'script/gath-rb.py', 'rb', rubypath, outpath])
             # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194/doc/ruport-1.6.3/ri
             # /Users/alexgordon/.rvm/gems/ruby-1.9.3-p194@global/doc/rvm-1.11.3.5/ri
